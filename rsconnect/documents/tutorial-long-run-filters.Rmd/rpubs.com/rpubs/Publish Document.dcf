@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/573944/2cb4afebedb149c6993f5723614feeba
+bundleId: https://api.rpubs.com/api/v1/document/573944/2cb4afebedb149c6993f5723614feeba
+url: http://rpubs.com/quarcs-lab/573944
+when: 1612058851.80353

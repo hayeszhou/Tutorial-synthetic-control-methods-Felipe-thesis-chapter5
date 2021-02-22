@@ -1,0 +1,612 @@
+---
+title: "Assesing the significance of cct policies on hpomicide rates using synthetic analysis - Colombian municipalities in the pacific region"
+author: "Felipe Santos-Marquez"
+date: "02/28/2021"
+output: html_document
+---
+
+
+# Load packages
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(tidyverse)
+library(readr)
+library(Synth)
+library(readxl)
+options(prompt="R> ", digits=3, scipen=9999)
+```
+
+# computing the policy coverage variable
+
+In general terms, the coverage of a CCT program can be expressed as a ratio:
+
+$$PC=\frac{PeC}{PentC}$$
+
+
+where $PC$ stands for policy coverage, $PeC$ is the number of people covered by the policy -who received the fund transfer- and $PentC$ is the number of people who are entitled to be covered by the policy.
+Nevertheless, the exact measure of both the numerator and the denominator are not easily accessible data, in the sense of being openly shared by the central government of Colombia.
+To overcome this measurement issue, the following proxy of policy coverage is used in this study:
+
+$$(proxy)\space PC= 100*\frac{( CCCT_{2011}- CCCT_{2006})}{DepP}$$
+
+Where $CCCT_i$ is the number of children and teenagers in households that received the CCT transfer in 2006 and 2011.
+As a matter of fact, the data for 2006 is aggregated from 2001 to 2006.  
+In 2006 the program was formally deployed, and yearly disaggregated information is not available from 2001 and 2006 when pilot programs were deployed.
+This data was acquired directly from the Administrative Department for Social Prosperity, the entity that is in charge of implementing public policies to alleviate poverty and promote equality in Colombia.
+
+Additionally,  $DepP$ is the number of people deprived because of "school absence".
+In this sense, a person is considered deprived if they belong to a household that has at least one child/teenager between 6 and 16 years old who does not attend an educational institution.
+This data is part of the Municipal database assembled by CEDE at University of the Andes (Universidad de los Andes) in Bogota, Colombia.
+The availability of this specific indicator is related to the fact that it is one of the 15 indicators used to construct the national multidimensional poverty index. 
+Data are only available across all municipalities for the year 2005 because on this year a national census was carried out.
+
+Data $DepP$ for 2005
+
+```{r}
+
+gen_ori <- read_excel("data/PANEL_CARACTERISTICAS_GENERALES(2019).xlsx")
+gen<- gen_ori %>% 
+  filter(ano==2005) %>% 
+  select(1:5,ipm_asisescu_pob)
+gen
+```
+
+## load CCT data 
+
+```{r}
+library(readxl)
+cct2 <- read_excel("C:/Users/felip/OneDrive/Desktop/Meidai/THESIS/M2021-Felipe-SDGs-Crime-Colombia/data/rawData/CCTs/raw_data_andes_cct2005_2010.xlsx", 
+    skip = 1)
+cct2
+
+colnames(cct2)
+```
+
+In some municipalities more children received the help in the first year 2006 than in 2010, those municipalities are removed fora preliminary analysis.
+
+```{r}
+cct2 %>% 
+  filter(dif_2010_2006<=0)
+cct2<- cct2 %>% 
+  select(1:4, contains(c("nna_", "dif"))) %>% 
+  arrange(desc(dif_2010_2006)) %>% 
+  filter(!dif_2010_2006<=0)
+cct2
+
+```
+
+## merging CCT data and  DepP data
+
+```{r}
+gen
+cct2<- cct2 %>% 
+  rename(codmpio = COD)
+cct2
+
+cct<- inner_join(gen, cct2, by="codmpio")
+cct
+```
+
+## cct data frame
+
+Policy coverage = "cct_per"
+
+```{r}
+cct<- cct%>% 
+  mutate(cct_per= 100* dif_2010_2006/ipm_asisescu_pob ) %>% 
+  select(codmpio, MUNICIPIO, coddepto, depto, dif_2010_2006,ipm_asisescu_pob,cct_per) 
+
+cct_master<- cct
+cct_master
+```
+
+## Loading other datasets
+
+```{r}
+
+# Codes for municipalities
+codigos_municipios <- read_csv("data/codigos_municipios.csv")
+
+
+# Determinants of homicide rates
+determinants_final_no_na<- read_csv("data/code05_crime_determinants_municipal_01_04_07_10.csv")
+determinants_final_no_na<- determinants_final_no_na[,-1]
+colnames(determinants_final_no_na)[1]<- "codmpio"
+
+# Fithered series of homicide rates 
+nmr_filter <- read.csv("data/code05_hodrick_filtered_homicides.csv")
+nmr_filter <- nmr_filter %>% 
+  select(-1) %>% mutate(eb_mr_fil= 10000-eb_nmr_fil)
+
+```
+
+
+## creating a dataframes for munimiciaplities below different population thresholds
+
+```{r}
+
+pobl_all<- gen_ori %>% 
+  filter(ano==2005) %>%  
+  select(depto,codmpio,municipio, pobl_tot) %>% 
+  filter(pobl_tot>-1)
+# over 10 000 people
+pobl_10000<- gen_ori %>% 
+  filter(ano==2005) %>%  
+  select(depto,codmpio,municipio, pobl_tot) %>% 
+  filter(pobl_tot>10000)
+# over 20 000 people
+pobl_20000<- gen_ori %>% 
+  filter(ano==2005) %>%  
+  select(depto,codmpio,municipio, pobl_tot) %>% 
+  filter(pobl_tot>20000)
+# over 30 000 people
+pobl_30000<- gen_ori %>% 
+  filter(ano==2005) %>%  
+  select(depto,codmpio,municipio, pobl_tot) %>% 
+  filter(pobl_tot>30000)
+# over 40 000 people
+pobl_40000<- gen_ori %>% 
+  filter(ano==2005) %>%  
+  select(depto,codmpio,municipio, pobl_tot) %>% 
+  filter(pobl_tot>40000)
+# between 10 000 and 20 000 people
+pobl_10000_20000<- gen_ori %>% 
+  filter(ano==2005) %>%  
+  select(depto,codmpio,municipio, pobl_tot) %>% 
+  filter(pobl_tot>10000) %>% 
+  filter(pobl_tot<=20000)
+# between 20 000 and 30 000 people
+pobl_20000_30000<- gen_ori %>% 
+  filter(ano==2005) %>%  
+  select(depto,codmpio,municipio, pobl_tot) %>% 
+  filter(pobl_tot>20000) %>% 
+  filter(pobl_tot<=30000)
+
+```
+
+
+## how many municipalities in each state
+
+```{r}
+codigos_municipios %>% 
+  group_by(`Código Departamento`, `Nombre Departamento`) %>% 
+  summarize(n=n()) %>% 
+  arrange(desc(n))
+```
+
+
+# pacific_states
+
+```{r}
+gen_ori %>% 
+  filter(ano==2018) %>% 
+  filter(gpacifica==1)
+```
+
+# creating the dataset of crime determinants for the municipaliteis in the pacific region
+
+```{r}
+pobl<-pobl_10000
+pop <- as.character("pop_10K")
+# "19","76","27","52" are the ID of the states in the pacific region
+dep_number=c("19","76","27","52")
+
+dep<- codigos_municipios %>% 
+  filter(`Código Departamento`%in%dep_number) %>%
+  mutate(codmpio= as.double(`Código Municipio`)) %>% 
+  filter(codmpio %in% pobl$codmpio)
+
+pacific_states<- as.double(dep$`Código Municipio`)
+
+det_dep<- determinants_final_no_na %>% 
+  filter(codmpio %in% pacific_states) %>% 
+  filter(!year==2001)
+det_dep
+```
+
+#  Finding the municiaplities in the contron and treatment groups 
+
+## categorical variable municipalities below and above the coverage threshold
+
+```{r}
+# control group coverage belo 30%
+low=30
+# treatment group coverage above 70%
+high=70
+cct<- cct_master %>% 
+  filter(codmpio %in% pacific_states) %>% 
+  filter(!is.na(cct_per))
+
+
+# cct_group variable: 1 below 30% coverage, 3 30%-70% coverage, 2 above 70% coverage
+cct<- cct %>% 
+  mutate(cct_group= ifelse(cct_per<low, 1, ifelse(cct_per>high,2,3)))
+
+cluster<- cct %>% 
+  select(codmpio, cct_group)
+
+cluster %>% 
+  group_by(cct_group) %>% 
+  summarise(n=n())
+```
+
+## preparing the data for the synth package
+
+Joining the data of homicide  determinants and the filtered homicides data
+
+```{r}
+
+new_det<- det_dep %>% 
+  mutate(eb_mr2= eb_mr)
+#new_det
+
+new_det<-right_join(new_det, cluster, by="codmpio")
+new_det <- new_det %>% select(-eb_mr)
+
+nmr<- nmr_filter %>% select(codmpio=code, year, eb_mr_fil) %>%
+   filter(codmpio %in% pacific_states) %>%
+  filter(year>=2003 & year<=2018)
+#nmr
+#new_det
+
+nmr <- nmr %>% filter(codmpio %in% new_det$codmpio )
+
+new_syn<- full_join(nmr, new_det, by=c("codmpio", "year")) %>% 
+  arrange(codmpio, year)
+
+
+#new_syn
+new_syn<- new_syn %>% fill(cct_group) 
+ new_syn<- new_syn %>% fill(cct_group, .direction=c("up")) 
+new_syn
+```
+
+
+Some extra municipalities  (including islands) must be removed
+
+
+#```{r}
+new_syn %>% 
+  group_by(codmpio) %>% 
+  summarise(a=n_distinct(year)) %>% 
+  arrange(a)
+ new_syn %>% 
+   filter(!codmpio %in% c(23685,97777,27086,88001,88564,0.1)) %>% 
+   group_by(codmpio) %>% 
+  summarise(a=n_distinct(year)) %>% 
+  arrange(a)
+ 
+  new_syn <- new_syn %>% 
+   filter(!codmpio %in% c(23685,27086, 97777,88001,88564,0.1))
+  
+#```
+
+## creating the list of control and treatment municipalities
+
+
+```{r}
+club1<-new_syn %>% 
+  filter(cct_group==1) %>% filter(year==2018) %>% 
+  arrange(desc( eb_mr_fil))
+#club1
+club2<-new_syn %>% 
+  filter(cct_group==2) %>% filter(year==2018) %>% 
+  arrange(desc( eb_mr_fil))
+#club2
+
+#IDs of control municipalities 
+control<- c(club1$codmpio)
+
+#IDs of treatment municipalities
+treatment<- c(club1$codmpio, club2$codmpio)
+
+#new_syn %>%  filter(codmpio %in% control) %>%
+ # filter(year %in% c(2004,2007,2010))
+```
+
+
+## using the synth() function
+
+```{r}
+
+new_syn<- new_syn %>% 
+  mutate(mun=as.character(codmpio)) %>% 
+  select(mun, everything())
+new_syn
+
+year<-c(2003:2018)
+
+mr_gap_pacific_states<- data.frame(year)
+plot_pacific_states=list()
+list.synth=list()
+
+for (xx in 1:length(treatment)) {
+
+control<- c(club1$codmpio)
+control<- control[!(control %in%  treatment[xx])]  
+
+muni=treatment[xx]
+
+class(new_syn)
+new_syn <- as.data.frame(new_syn)
+dataprep.out <- dataprep(
+ foo = new_syn,
+ predictors = c(5:19),
+ predictors.op = "mean",
+ time.predictors.prior = c(2004,2007,2010),
+ special.predictors = list(
+list("errad_aerea"  ,c(2004,2007,2010), "mean"), 
+list("lag.ataqinst_ELN" ,c(2004,2007), "mean"),
+list("lag.H_coca" ,c(2004,2007,2010), "mean"), 
+list("lag.errad_manual" ,c(2004,2007,2010), "mean"), 
+list("H_Coca_mayor3" ,c(2004,2007,2010), "mean"), 
+list("lag.DF_gast_inv" ,c(2004,2007,2010), "mean"), 
+list("errad_manual" ,c(2004,2007,2010), "mean"), 
+list("lag.lotes_coca" ,c(2004,2007,2010), "mean"), 
+list("lotes_coca" ,c(2004,2007,2010), "mean"), 
+list("lag.g_terreno" ,c(2004,2007,2010), "mean"), 
+list("imr" ,c(2004,2007,2010), "mean"), 
+list("lag.gini" ,c(2004), "mean"), 
+list("Litr" ,c(2004), "mean"), 
+list("lag.eb_pir" ,c(2010), "mean"), 
+list("eb_mr2" ,c(2004,2007,2010), "mean")),
+dependent = "eb_mr_fil",
+ unit.variable = "codmpio",
+ unit.names.variable = "mun",
+ time.variable = "year",
+ treatment.identifier = muni,
+ controls.identifier = control,
+ time.optimize.ssr = 2003:2011,
+ time.plot = 2003:2018)
+ 
+#  tryCatch is used so that the for loop continues even if there is an error in of the steps
+   tryCatch({
+  
+synth.out <- synth(data.prep.obj = dataprep.out, method = "BFGS",  quadopt = "ipop", Margin.ipop = 5e-04,Sigf.ipop = 5,Bound.ipop = 10)
+
+synth.tables <- synth.tab(dataprep.res = dataprep.out, synth.res = synth.out)
+list.synth[[xx]]<-  synth.tables
+
+gaps <- dataprep.out$Y1plot - (dataprep.out$Y0plot %*% synth.out$solution.w)
+
+gap<- as.data.frame(gaps) %>% 
+  mutate(year=2003:2018) 
+colnames(gap)[1] <- paste("m", colnames(gap)[1], sep="")
+gap
+mr_gap_pacific_states <- left_join(mr_gap_pacific_states, gap, by="year")
+}, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+ }
+
+```
+
+If the for loop was carried out xx=63
+
+The mr_gap_pacific_states dataframe has the gap (real - synthetic) for each of the 63 regions
+
+```{r}
+xx
+mr_gap_pacific_states
+```
+
+In case the dataframe mr_gap_pacific_states is saved
+
+```{r}
+mr_gap_pacific_states
+
+#loc_file<- paste("output/gap_cct_synthetic_pacific_states",pop, as.character(low), as.character(high),".csv",sep="_")
+
+#write.csv(mr_gap_pacific_states, loc_file)
+
+```
+
+It can be seen that Loss V is the mean predicted square error before the treatment 
+
+```{r}
+mr_gap_pacific_states
+
+list.synth[[1]]$tab.loss
+treatment[1]
+sum(mr_gap_pacific_states$m52835[1:9]^2)/9
+
+```
+
+# calculation of the post treatment mean square predicted error
+
+```{r}
+post_mspe<- mr_gap_pacific_states %>% 
+  filter(year>=2012) %>% 
+  gather(key="municipality", value = "gap", 2:ncol(.)) %>% 
+  mutate(gap=gap^2) %>% 
+  group_by(municipality) %>% 
+  summarise(post_mspe_gap=mean(gap))
+post_mspe
+
+mr_gap_pacific_states %>% 
+  filter(year>=2012) %>% 
+  gather(key="municipality", value = "gap", 2:ncol(.)) %>% 
+  mutate(gap=gap^2)
+```
+
+## creating a dataframe with loss W and loss V for all municipalities
+
+```{r}
+
+table.loss <- data.frame(mun= 0, `Loss W`=0,  `Loss V`=0)
+
+for (x in seq_along(treatment)) {
+
+  if (is.null(list.synth[[x]]$tab.loss)) {
+  dat<-  data.frame(mun= treatment[x], `Loss W`=NA,  `Loss V`=NA)
+} else {
+  dat<- data.frame(mun= treatment[x], as.data.frame(list.synth[[x]]$tab.loss))
+}
+  table.loss<- rbind(table.loss, dat)
+  
+}
+
+table.loss<- table.loss%>% 
+  filter(mun>0) %>%
+  mutate(mun=paste("m", as.character(mun), sep=""))
+
+table.loss
+
+
+```
+
+## t-test and plot - "Postperiod RMSPE/Preperiod RMSPE"
+
+```{r}
+post_mspe
+table.loss
+post.pre <- inner_join( post_mspe, table.loss, by=c("municipality"="mun")) %>% 
+  select(-Loss.W) %>% 
+  mutate(high_cct=ifelse(municipality %in% high_treatment, "high","low")) %>% 
+  mutate(post_pre= sqrt(post_mspe_gap)/sqrt(Loss.V))
+post.pre
+
+plot_location1<- paste("output/box_plot",pop, as.character(low),as.character(high),".png", sep = "_")
+
+set.seed(2019)
+post.pre %>% 
+ggplot( aes(x=high_cct, y=(post_pre), color=high_cct)) +
+  coord_flip()+
+  geom_boxplot(color = "gray60", outlier.alpha = 0) +
+  geom_jitter(size = 3, alpha = 0.25, width = 0.2)+
+   labs(subtitle = "",
+       y = " Postperiod  RMSPE  / Preperiod RMSPE ",
+       x = "", legend.title="h" )+ 
+  theme(text=element_text( family="Palatino"),  axis.text=element_text(size=17),axis.title=element_text(size=17), legend.text = element_text(size=17), legend.title = element_text(size=17), axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())+
+  guides(colour=guide_legend(title=" CCT \n coverage"))+
+    theme_minimal() 
+ggsave(plot_location1)
+
+post.pre.high<- post.pre   %>% 
+  filter(high_cct=="high") %>% select(post_pre)
+
+post.pre.low <-post.pre %>% 
+  filter(high_cct=="low") %>% select(post_pre)
+
+t.test(x= post.pre.high, y = post.pre.low, alternative = c("two.sided", "less", "greater"), mu = 0,  paired = FALSE, var.equal = FALSE, conf.level = 0.95)
+```
+
+# Genaral plot gaps over time for all municiaplites
+
+```{r}
+
+values<- c("black","gray")
+
+plot_location<- paste("output/",pop, as.character(low),as.character(high),".png", sep = "_")
+
+# gather mr_gap_pacific_states dataframe
+mr_gap_pacific_states_plot<- mr_gap_pacific_states %>% 
+  gather(key= "municipality", value = "gap", 2:ncol(.)) %>%
+  mutate(cct=ifelse(municipality %in% high_treatment, "high", "low"))
+
+mr_gap_pacific_states_plot %>% 
+  filter(year==2003) %>% 
+  group_by(cct) %>% 
+  summarise(number_mun= n_distinct(municipality))
+
+mr_gap_pacific_states_plot %>%
+  ggplot(aes(x=year,y=gap, group=municipality, color=cct)) +
+  geom_line(lwd=1.2)+
+  scale_colour_manual(values=values)+
+   theme_minimal() +
+  labs(subtitle = "",
+       x = "year",
+       y = "Homicide rate gap", legend.title="h" ) +
+  theme(text=element_text( family="Palatino"), axis.text=element_text(size=15),axis.title=element_text(size=15), legend.text = element_text(size=15), legend.title = element_text(size=15))+
+  guides(colour=guide_legend(title="CCT coverage"))
+ggsave(plot_location)
+
+```
+
+## t-test of the "2018 gap" and "2018 gap/Preperiod RMSPE"
+
+```{r}
+gap.high.cct <-mr_gap_pacific_states_plot %>% 
+  filter(year==2018 & cct=="high")  %>% 
+  select(gap)
+#gap.high.cct
+
+gap.low.cct <-mr_gap_pacific_states_plot %>% 
+  filter(year==2018 & cct=="low")  %>% 
+  select(gap)
+#gap.low.cct
+
+t.test(x= gap.low.cct , y = gap.high.cct, alternative = c("two.sided", "less", "greater"), mu = 0,  paired = FALSE, var.equal = FALSE, conf.level = 0.95)
+
+
+
+gap.high.cct <-mr_gap_pacific_states_plot %>% 
+  filter(year==2018 & cct=="high")  %>% 
+  left_join(., table.loss, by=c("municipality"= "mun")) %>% 
+  mutate(gap_ratio= gap/(sqrt(Loss.V))) %>% 
+  select( gap_ratio)  
+#gap.high.cct
+
+gap.low.cct <-mr_gap_pacific_states_plot %>% 
+  filter(year==2018 & cct=="low") %>% 
+  left_join(., table.loss, by=c("municipality"= "mun")) %>% 
+  mutate(gap_ratio= gap/(sqrt(Loss.V))) %>% 
+  select( gap_ratio)  
+#gap.low.cct
+
+
+t.test(x= gap.low.cct , y = gap.high.cct, alternative = c("two.sided", "less", "greater"), mu = 0,  paired = FALSE, var.equal = FALSE, conf.level = 0.95)
+
+
+plot_location1<- paste("output/box_plot_gap",pop, as.character(low),as.character(high),".png", sep = "_")
+
+gap.high.cct<- data.frame(gap= gap.high.cct, cct= rep("high",length( gap.high.cct)))
+gap.low.cct<- data.frame(gap= gap.low.cct, cct= rep("low",length(gap.low.cct)))
+post.pre.gap<- rbind(gap.high.cct, gap.low.cct)
+
+set.seed(2018)
+
+post.pre.gap %>% 
+ggplot( aes(x=cct, y=gap_ratio, color=cct)) +
+  coord_flip()+
+  geom_boxplot(color = "gray60", outlier.alpha = 0) +
+  geom_jitter(size = 4, alpha = 0.15, width = 0.1)+
+  stat_summary(fun = mean, geom = "point", size = 5, alpha=1)+
+  #stat_summary(fun = median, geom = "line", size = 5)+
+   labs(subtitle = "",
+       y = " 2018 gap / Preperiod RMSPE ",
+       x = "" )+ 
+  theme(text=element_text( family="Palatino"),  axis.text=element_text(size=17),axis.title=element_text(size=17), legend.text = element_text(size=17), legend.title = element_text(size=17), axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())+
+  guides(colour=guide_legend(title="CCT \n coverage"))+
+    theme_minimal() 
+ggsave(plot_location1)
+plot_location1
+```
+
+
+
+
+
+
+namenn<- paste("mun",as.character(muni), sep = "_")
+
+namenn<- paste(namenn, as.character(low), as.character(high), ".pdf", sep="_")
+
+filen<- paste("output/50_50/", namenn, sep="")
+#filen
+#pdf(filen, width = 7, height = 7)
+# 2. Create the plot
+#path.plot(synth.res = synth.out, dataprep.res = dataprep.out,
+#Ylab = "Empirical Bayes homicide rate (per 10000)", Xlab = "year", Legend = c("high CCT coverage municipality",
+#"synthetic control"), Legend.position = "topright", tr.intake = 2011)
+# 3. Close the file
+#dev.off()
+
+
+#gaps.plot(synth.res = synth.out, dataprep.res = dataprep.out, Ylab = "gap in homicides", Xlab = "year", Ylim = c(-10, 10), Main = NA)
+
+
+
