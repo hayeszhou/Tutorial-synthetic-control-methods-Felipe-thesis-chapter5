@@ -45,11 +45,13 @@ Data $DepP$ for 2005
 
 ```{r}
 
-gen_ori <- read_excel("data/PANEL_CARACTERISTICAS_GENERALES(2019).xlsx")
+gen_ori<- read_csv("data/ipm_asisescu_pob.csv")
+gen_ori<- gen_ori[-1]
 gen<- gen_ori %>% 
   filter(ano==2005) %>% 
-  select(1:5,ipm_asisescu_pob)
+  select(1:6,ipm_asisescu_pob)
 gen
+
 ```
 
 ## load CCT data 
