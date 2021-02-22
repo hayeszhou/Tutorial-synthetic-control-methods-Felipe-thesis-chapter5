@@ -1,4 +1,4 @@
-RStudio: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/quarcs-lab/tutorial-long-run-filters/HEAD?urlpath=rstudio) [![DOI](https://zenodo.org/badge/239955444.svg)](https://zenodo.org/badge/latestdoi/239955444)
+RStudio: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/quarcs-lab/Tutorial-synthetic-control-methods-Felipe-thesis-chapter5/HEAD?urlpath=rstudio) [![DOI](https://zenodo.org/badge/239955444.svg)](https://zenodo.org/badge/latestdoi/239955444)
 
 # Long Run vs Short Run Decompositions in R:  The HP filter vs the Hamilton filter
 
@@ -6,7 +6,7 @@ RStudio: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v
 
 ## Online Environments
 
-- R Studio cloud project: https://rstudio.cloud/project/25043
+- R Studio cloud project: https://rstudio.cloud/project/25043   
 
 - This notebook can also be executed online at [GESIS Notebooks](https://notebooks.gesis.org). Just copy the URL of this repository and paste it on the [BINDER form](https://notebooks.gesis.org/binder/) To open a virtual R Studio session, make sure you change you click on `File` and change it to `URL`. Then, write `rstudio` in the field `URL to open (optional)`. Finally, click on `launch`.  
 
