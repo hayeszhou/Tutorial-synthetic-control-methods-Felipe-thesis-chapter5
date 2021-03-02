@@ -1,5 +1,4 @@
-RStudio: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/quarcs-lab/Tutorial-synthetic-control-methods-Felipe-thesis-chapter5/HEAD?urlpath=rstudio) [![DOI](https://zenodo.org/badge/239955444.svg)](https://zenodo.org/badge/latestdoi/239955444)
-
+RStudio: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/quarcs-lab/Tutorial-synthetic-control-methods-Felipe-thesis-chapter5/HEAD?urlpath=rstudio)
 
 
 ## Online Environments
