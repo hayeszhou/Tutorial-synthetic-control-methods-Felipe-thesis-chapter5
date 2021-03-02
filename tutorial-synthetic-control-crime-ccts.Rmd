@@ -1,5 +1,5 @@
 ---
-title: "Assesing the significance of cct policies on hpomicide rates using synthetic analysis - Colombian municipalities in the pacific region"
+title: "Assesing the significance of cct policies on homicide rates using synthetic analysis - Colombian municipalities in the pacific region"
 author: "Felipe Santos-Marquez"
 date: "02/28/2021"
 output: html_document
