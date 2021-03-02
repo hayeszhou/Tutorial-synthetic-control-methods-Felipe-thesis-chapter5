@@ -44,7 +44,6 @@ Data are only available across all municipalities for the year 2005 because on t
 Data $DepP$ for 2005
 
 ```{r}
-
 gen_ori<- read_csv("data/ipm_asisescu_pob.csv")
 gen_ori<- gen_ori[-1]
 gen<- gen_ori %>% 
@@ -58,14 +57,14 @@ gen
 
 ```{r}
 library(readxl)
-cct2 <- read_excel("C:/Users/felip/OneDrive/Desktop/Meidai/THESIS/M2021-Felipe-SDGs-Crime-Colombia/data/rawData/CCTs/raw_data_andes_cct2005_2010.xlsx", 
+cct2 <- read_excel("data/raw_data_andes_cct2005_2010.xlsx", 
     skip = 1)
 cct2
 
 colnames(cct2)
 ```
 
-In some municipalities more children received the help in the first year 2006 than in 2010, those municipalities are removed fora preliminary analysis.
+In some municipalities more children received the help in the first year 2006 than in 2010, those municipalities are removed from this preliminary analysis.
 
 ```{r}
 cct2 %>% 
@@ -78,7 +77,7 @@ cct2
 
 ```
 
-## merging CCT data and  DepP data
+## merging CCT data and DepP data
 
 ```{r}
 gen
@@ -116,7 +115,7 @@ determinants_final_no_na<- read_csv("data/code05_crime_determinants_municipal_01
 determinants_final_no_na<- determinants_final_no_na[,-1]
 colnames(determinants_final_no_na)[1]<- "codmpio"
 
-# Fithered series of homicide rates 
+# Filtered series of homicide rates 
 nmr_filter <- read.csv("data/code05_hodrick_filtered_homicides.csv")
 nmr_filter <- nmr_filter %>% 
   select(-1) %>% mutate(eb_mr_fil= 10000-eb_nmr_fil)
@@ -212,7 +211,7 @@ det_dep
 ## categorical variable municipalities below and above the coverage threshold
 
 ```{r}
-# control group coverage belo 30%
+# control group coverage below 30%
 low=30
 # treatment group coverage above 70%
 high=70
@@ -235,7 +234,7 @@ cluster %>%
 
 ## preparing the data for the synth package
 
-Joining the data of homicide  determinants and the filtered homicides data
+Joining the data of homicide determinants and the filtered homicides data
 
 ```{r}
 
@@ -265,25 +264,6 @@ new_syn
 ```
 
 
-Some extra municipalities  (including islands) must be removed
-
-
-#```{r}
-new_syn %>% 
-  group_by(codmpio) %>% 
-  summarise(a=n_distinct(year)) %>% 
-  arrange(a)
- new_syn %>% 
-   filter(!codmpio %in% c(23685,97777,27086,88001,88564,0.1)) %>% 
-   group_by(codmpio) %>% 
-  summarise(a=n_distinct(year)) %>% 
-  arrange(a)
- 
-  new_syn <- new_syn %>% 
-   filter(!codmpio %in% c(23685,27086, 97777,88001,88564,0.1))
-  
-#```
-
 ## creating the list of control and treatment municipalities
 
 
@@ -301,14 +281,16 @@ club2<-new_syn %>%
 control<- c(club1$codmpio)
 
 #IDs of treatment municipalities
+#In the treatment vector the control municipalities are also included, this is because placebo regions are created this way 
 treatment<- c(club1$codmpio, club2$codmpio)
 
-#new_syn %>%  filter(codmpio %in% control) %>%
- # filter(year %in% c(2004,2007,2010))
 ```
 
+## Using the synth() function
 
-## using the synth() function
+running the following chunk took about 20 minutes in my PC. Instead of running it,  you may load the workspace "output-synth-function-loop" and load the results. 
+The figures are stored in the folder output/30_70/.
+
 
 ```{r}
 
@@ -362,47 +344,89 @@ dependent = "eb_mr_fil",
  time.optimize.ssr = 2003:2011,
  time.plot = 2003:2018)
  
-#  tryCatch is used so that the for loop continues even if there is an error in of the steps
+#  tryCatch is used so that the for loop continues even if there is an error in one of the steps
    tryCatch({
   
 synth.out <- synth(data.prep.obj = dataprep.out, method = "BFGS",  quadopt = "ipop", Margin.ipop = 5e-04,Sigf.ipop = 5,Bound.ipop = 10)
+# the line quadopt = "ipop", Margin.ipop = 5e-04,Sigf.ipop = 5,Bound.ipop = 10 have been added to speed up the synth function, this line was not included in the analysis of the submitted thesis
 
-synth.tables <- synth.tab(dataprep.res = dataprep.out, synth.res = synth.out)
-list.synth[[xx]]<-  synth.tables
 
-gaps <- dataprep.out$Y1plot - (dataprep.out$Y0plot %*% synth.out$solution.w)
+# Creating plots of the homicide trends for municipalities and their synthetic counterparts
 
-gap<- as.data.frame(gaps) %>% 
+namenn<- paste("mun",as.character(muni), sep = "_")
+namenn<- paste(namenn, as.character(low), as.character(high), ".pdf", sep="_")
+filen<- paste("output/30_70/", namenn, sep="")
+## 1. Create pdf file
+pdf(filen, width = 7, height = 7)
+## 2. Create the plot
+path.plot(synth.res = synth.out, dataprep.res = dataprep.out,
+Ylab = "Empirical Bayes homicide rate (per 10000)", Xlab = "year", Legend = c(paste("municipality", as.character(muni), sep=" "),
+"synthetic control"), Legend.position = "topright", tr.intake = 2011)
+## 3. Close the file
+dev.off()
+
+
+# Tables are produced by using the synth.tab() function for each unit in the vector treatment and saved in the element [[xx]] of a list 
+list.synth[[xx]] <- synth.tab(dataprep.res = dataprep.out, synth.res = synth.out)
+
+
+#the annual discrepancies in the homicide trend between each municipality  and its synthetic counterpart is stored in the "gap" object
+gap <- dataprep.out$Y1plot - (dataprep.out$Y0plot %*% synth.out$solution.w)
+
+# gap is turned into a dataframe and merged in each xx step of the loop with the mr_gap_pacific_states dataframe
+gap<- as.data.frame(gap) %>% 
   mutate(year=2003:2018) 
 colnames(gap)[1] <- paste("m", colnames(gap)[1], sep="")
-gap
 mr_gap_pacific_states <- left_join(mr_gap_pacific_states, gap, by="year")
+
+
 }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
  }
 
 ```
 
-If the for loop was carried out xx=63
-
-The mr_gap_pacific_states dataframe has the gap (real - synthetic) for each of the 63 regions
+Since  the for loop was carried out entirely xx=63.
+The mr_gap_pacific_states dataframe has the gap (real - synthetic) for each of the 63 municipalities
 
 ```{r}
 xx
 mr_gap_pacific_states
 ```
 
-In case the dataframe mr_gap_pacific_states is saved
+# Genaral plot gaps over time for all municiaplites
 
 ```{r}
-mr_gap_pacific_states
 
-#loc_file<- paste("output/gap_cct_synthetic_pacific_states",pop, as.character(low), as.character(high),".csv",sep="_")
+values<- c("black","gray")
+plot_location<- paste("output/",pop, as.character(low),as.character(high),".png", sep = "_")
+high_treatment<- paste("m", club2$codmpio, sep="")
 
-#write.csv(mr_gap_pacific_states, loc_file)
+# gather mr_gap_pacific_states dataframe
+mr_gap_pacific_states_plot<- mr_gap_pacific_states %>% 
+  gather(key= "municipality", value = "gap", 2:ncol(.)) %>%
+  mutate(cct=ifelse(municipality %in% high_treatment, "high", "low"))
+
+mr_gap_pacific_states_plot %>% 
+  filter(year==2003) %>% 
+  group_by(cct) %>% 
+  summarise(number_mun= n_distinct(municipality))
+
+mr_gap_pacific_states_plot %>%
+  ggplot(aes(x=year,y=gap, group=municipality, color=cct)) +
+  geom_line(lwd=1.2)+
+  scale_colour_manual(values=values)+
+   theme_minimal() +
+  labs(subtitle = "",
+       x = "year",
+       y = "Homicide rate gap", legend.title="h" ) +
+  theme(text=element_text( family="Palatino"), axis.text=element_text(size=15),axis.title=element_text(size=15), legend.text = element_text(size=15), legend.title = element_text(size=15))+
+  guides(colour=guide_legend(title="CCT coverage"))
+ggsave(plot_location)
 
 ```
 
-It can be seen that Loss V is the mean predicted square error before the treatment 
+
+It can be seen that Loss V in the list list.synth is the mean predicted square error before the treatment (before 2011)
 
 ```{r}
 mr_gap_pacific_states
@@ -494,39 +518,8 @@ post.pre.low <-post.pre %>%
 t.test(x= post.pre.high, y = post.pre.low, alternative = c("two.sided", "less", "greater"), mu = 0,  paired = FALSE, var.equal = FALSE, conf.level = 0.95)
 ```
 
-# Genaral plot gaps over time for all municiaplites
 
-```{r}
-
-values<- c("black","gray")
-
-plot_location<- paste("output/",pop, as.character(low),as.character(high),".png", sep = "_")
-
-# gather mr_gap_pacific_states dataframe
-mr_gap_pacific_states_plot<- mr_gap_pacific_states %>% 
-  gather(key= "municipality", value = "gap", 2:ncol(.)) %>%
-  mutate(cct=ifelse(municipality %in% high_treatment, "high", "low"))
-
-mr_gap_pacific_states_plot %>% 
-  filter(year==2003) %>% 
-  group_by(cct) %>% 
-  summarise(number_mun= n_distinct(municipality))
-
-mr_gap_pacific_states_plot %>%
-  ggplot(aes(x=year,y=gap, group=municipality, color=cct)) +
-  geom_line(lwd=1.2)+
-  scale_colour_manual(values=values)+
-   theme_minimal() +
-  labs(subtitle = "",
-       x = "year",
-       y = "Homicide rate gap", legend.title="h" ) +
-  theme(text=element_text( family="Palatino"), axis.text=element_text(size=15),axis.title=element_text(size=15), legend.text = element_text(size=15), legend.title = element_text(size=15))+
-  guides(colour=guide_legend(title="CCT coverage"))
-ggsave(plot_location)
-
-```
-
-## t-test of the "2018 gap" and "2018 gap/Preperiod RMSPE"
+# t-test of the "2018 gap" and "2018 gap/Preperiod RMSPE"
 
 ```{r}
 gap.high.cct <-mr_gap_pacific_states_plot %>% 
@@ -590,25 +583,6 @@ plot_location1
 
 
 
-
-
-
-namenn<- paste("mun",as.character(muni), sep = "_")
-
-namenn<- paste(namenn, as.character(low), as.character(high), ".pdf", sep="_")
-
-filen<- paste("output/50_50/", namenn, sep="")
-#filen
-#pdf(filen, width = 7, height = 7)
-# 2. Create the plot
-#path.plot(synth.res = synth.out, dataprep.res = dataprep.out,
-#Ylab = "Empirical Bayes homicide rate (per 10000)", Xlab = "year", Legend = c("high CCT coverage municipality",
-#"synthetic control"), Legend.position = "topright", tr.intake = 2011)
-# 3. Close the file
-#dev.off()
-
-
-#gaps.plot(synth.res = synth.out, dataprep.res = dataprep.out, Ylab = "gap in homicides", Xlab = "year", Ylim = c(-10, 10), Main = NA)
 
 
 
