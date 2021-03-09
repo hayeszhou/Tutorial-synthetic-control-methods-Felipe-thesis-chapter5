@@ -1,5 +1,22 @@
 RStudio: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/quarcs-lab/Tutorial-synthetic-control-methods-Felipe-thesis-chapter5/HEAD?urlpath=rstudio)
 
+This repository contains a tutorial to replicate the results of the 5th chapter of my Master Thesis.
+
+## The Effect of Conditional Cash Transfer Policies on Crime: Evidence from a Synthetic Controls Framework
+
+In the academic literature, there is not a broad agreement on the relationship between
+violent crime and the expansion of conditional cash transfer programs. This chapter sheds
+some light onto the impact that the largest of these type of programs has on homicide
+rates in Colombian municipalities. The causality link is exposed using synthetic control
+methods. This study is focalised in one of the most violent regions in the country, the
+Pacific region. The results suggest that when accounting for variance instability, the
+homicide rates in treated regions are lower than their synthetic control counterparts. Also,
+placebo studies are performed to evaluate the significance of the results. On average,
+the effects of the conditional cash transfer program on homicide rates are reported to be
+significant at a 5% level. The chapter concludes with a discussion of future research that
+can be conducted on the impact of social welfare on other types of crimes, and another
+robustness checks that can be performed to test the findings of this chapter.
+
 
 ## Online Environments
 
@@ -7,4 +24,20 @@ RStudio: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v
 
 
 [![Creative Commons Lizenzvertrag](https://i.creativecommons.org/l/by-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-sa/4.0/)
+
+
+## References
+
+
+- Abadie, Alberto, Alexis Diamond, and Jens Hainmueller (2010). "Synthetic control methods for
+comparative case studies: Estimating the effect of California's tobacco control program". In:
+Journal of the American statistical Association 105.490, pp. 493-505.
+
+- Abadie, Alberto, Alexis Diamond, and Jens Hainmueller (2011). "Synth: An r package for synthetic control methods in comparative case studies". In:
+Journal of Statistical Software 42.13.
+
+- Abadie, Alberto, Alexis Diamond, and Jens Hainmueller (2015). "Comparative politics and the synthetic control method". In: American Journal of
+Political Science 59.2, pp. 495-510.
+
+- Abadie, Alberto and Javier Gardeazabal (2003). "The economic costs of conflict: A case study of the Basque Country". In: American economic review 93.1, pp. 113-132.
 
