@@ -1,5 +1,5 @@
 ---
-title: "Assesing the significance of cct policies on homicide rates using synthetic analysis - Colombian municipalities in the pacific region"
+title: "Assesing the significance of cct policies on homicide rates using synthetic control methods - Colombian municipalities in the pacific region"
 author: "Felipe Santos-Marquez"
 date: "02/28/2021"
 output: html_document
@@ -24,7 +24,7 @@ In general terms, the coverage of a CCT program can be expressed as a ratio:
 $$PC=\frac{PeC}{PentC}$$
 
 
-where $PC$ stands for policy coverage, $PeC$ is the number of people covered by the policy -who received the fund transfer- and $PentC$ is the number of people who are entitled to be covered by the policy.
+Where $PC$ stands for policy coverage, $PeC$ is the number of people covered by the policy -who received the fund transfer- and $PentC$ is the number of people who are entitled to be covered by the policy.
 Nevertheless, the exact measure of both the numerator and the denominator are not easily accessible data, in the sense of being openly shared by the central government of Colombia.
 To overcome this measurement issue, the following proxy of policy coverage is used in this study:
 
@@ -41,7 +41,9 @@ This data is part of the Municipal database assembled by CEDE at University of t
 The availability of this specific indicator is related to the fact that it is one of the 15 indicators used to construct the national multidimensional poverty index. 
 Data are only available across all municipalities for the year 2005 because on this year a national census was carried out.
 
-Data $DepP$ for 2005
+# loading data for CCTs and computing policy coverage 
+
+Data for $DepP$ for 2005 is equivalent to the variable **ipm_asisescu_pob** in the following datasets
 
 ```{r}
 gen_ori<- read_csv("data/ipm_asisescu_pob.csv")
@@ -64,7 +66,7 @@ cct2
 colnames(cct2)
 ```
 
-In some municipalities more children received the help in the first year 2006 than in 2010, those municipalities are removed from this preliminary analysis.
+In some municipalities more children received the help in the first year (2006) than in 2010, those municipalities are removed from this preliminary analysis.
 
 ```{r}
 cct2 %>% 
@@ -91,7 +93,7 @@ cct
 
 ## cct data frame
 
-Policy coverage = "cct_per"
+Policy coverage = **cct_per**
 
 ```{r}
 cct<- cct%>% 
@@ -102,7 +104,7 @@ cct_master<- cct
 cct_master
 ```
 
-## Loading other datasets
+# Loading other datasets
 
 ```{r}
 
@@ -122,8 +124,11 @@ nmr_filter <- nmr_filter %>%
 
 ```
 
+# Data wrangling (preparing data for the Synth function) 
 
-## creating a dataframes for munimiciaplities below different population thresholds
+## Creating  dataframes for munimiciaplities with different population specifications 
+
+In this tutorial only pobl_10000 is used, other datasets may be used to evaluate the robustness of the results for municipalities with smaller or larger populations.
 
 ```{r}
 
@@ -172,12 +177,13 @@ pobl_20000_30000<- gen_ori %>%
 ```{r}
 codigos_municipios %>% 
   group_by(`Código Departamento`, `Nombre Departamento`) %>% 
-  summarize(n=n()) %>% 
-  arrange(desc(n))
+  summarize(number_municipalities=n()) %>% 
+  arrange(desc(number_municipalities))
 ```
 
 
-# pacific_states
+## Municipalities in the pacific region can be filteres using the dummy variable **gpacifica** or by selecting  all the states in the region 
+'"19","76","27","52" are the IDs of the states in the pacific region)
 
 ```{r}
 gen_ori %>% 
@@ -185,7 +191,7 @@ gen_ori %>%
   filter(gpacifica==1)
 ```
 
-# creating the dataset of crime determinants for the municipaliteis in the pacific region
+# creating the dataset of crime determinants for the municipaliteis in the pacific region (det_dep)
 
 ```{r}
 pobl<-pobl_10000
@@ -206,9 +212,9 @@ det_dep<- determinants_final_no_na %>%
 det_dep
 ```
 
-#  Finding the municiaplities in the contron and treatment groups 
+#  Finding the municiaplities in the control and treatment groups 
 
-## categorical variable municipalities below and above the coverage threshold
+## categorical variable for municipalities below and above the coverage threshold
 
 ```{r}
 # control group coverage below 30%
@@ -218,7 +224,6 @@ high=70
 cct<- cct_master %>% 
   filter(codmpio %in% pacific_states) %>% 
   filter(!is.na(cct_per))
-
 
 # cct_group variable: 1 below 30% coverage, 3 30%-70% coverage, 2 above 70% coverage
 cct<- cct %>% 
@@ -235,27 +240,24 @@ cluster %>%
 ## preparing the data for the synth package
 
 Joining the data of homicide determinants and the filtered homicides data
+new_syn is the dataframe that will be used to run the synth function()
 
 ```{r}
 
-new_det<- det_dep %>% 
-  mutate(eb_mr2= eb_mr)
-#new_det
+det_dep<- det_dep %>% 
+ rename(eb_mr2= eb_mr)
+det_dep
 
-new_det<-right_join(new_det, cluster, by="codmpio")
-new_det <- new_det %>% select(-eb_mr)
+det_dep<-right_join(det_dep, cluster, by="codmpio")
 
+# filtering the data for the filtered homicide rates by years and for municipalities in the pacific region
 nmr<- nmr_filter %>% select(codmpio=code, year, eb_mr_fil) %>%
    filter(codmpio %in% pacific_states) %>%
-  filter(year>=2003 & year<=2018)
-#nmr
-#new_det
+  filter(year>=2003 & year<=2018) %>% 
+  filter(codmpio %in% det_dep$codmpio )
 
-nmr <- nmr %>% filter(codmpio %in% new_det$codmpio )
-
-new_syn<- full_join(nmr, new_det, by=c("codmpio", "year")) %>% 
+new_syn<- full_join(nmr, det_dep, by=c("codmpio", "year")) %>% 
   arrange(codmpio, year)
-
 
 #new_syn
 new_syn<- new_syn %>% fill(cct_group) 
@@ -265,7 +267,6 @@ new_syn
 
 
 ## creating the list of control and treatment municipalities
-
 
 ```{r}
 club1<-new_syn %>% 
@@ -281,12 +282,13 @@ club2<-new_syn %>%
 control<- c(club1$codmpio)
 
 #IDs of treatment municipalities
-#In the treatment vector the control municipalities are also included, this is because placebo regions are created this way 
+
+#In the treatment vector the control municipalities are also included, this is because placebo regions are generated this way (as synthetic controls of each of the units in the control group)
 treatment<- c(club1$codmpio, club2$codmpio)
 
 ```
 
-## Using the synth() function
+# Using the synth() function
 
 running the following chunk took about 20 minutes in my PC. Instead of running it,  you may load the workspace "output-synth-function-loop" and load the results. 
 The figures are stored in the folder output/30_70/.
@@ -385,7 +387,10 @@ mr_gap_pacific_states <- left_join(mr_gap_pacific_states, gap, by="year")
 
 ```
 
-Since  the for loop was carried out entirely xx=63.
+
+# Analysing the outputs of the synth() function
+
+Since the for loop was carried out entirely xx=63.
 The mr_gap_pacific_states dataframe has the gap (real - synthetic) for each of the 63 municipalities
 
 ```{r}
@@ -393,7 +398,7 @@ xx
 mr_gap_pacific_states
 ```
 
-# Genaral plot gaps over time for all municiaplites
+## Genaral plot - gaps over time for all municiaplites
 
 ```{r}
 
@@ -426,7 +431,7 @@ ggsave(plot_location)
 ```
 
 
-It can be seen that Loss V in the list list.synth is the mean predicted square error before the treatment (before 2011)
+It can be seen that Loss V in the list list.synth is the mean square prediction error before the treatment (before 2011)
 
 ```{r}
 mr_gap_pacific_states
@@ -435,9 +440,13 @@ list.synth[[1]]$tab.loss
 treatment[1]
 sum(mr_gap_pacific_states$m52835[1:9]^2)/9
 
+list.synth[[2]]$tab.loss
+treatment[2]
+sum(mr_gap_pacific_states$m19050[1:9]^2)/9
+
 ```
 
-# calculation of the post treatment mean square predicted error
+## calculation of the post treatment mean square prediction error
 
 ```{r}
 post_mspe<- mr_gap_pacific_states %>% 
@@ -482,20 +491,22 @@ table.loss
 
 ## t-test and plot - "Postperiod RMSPE/Preperiod RMSPE"
 
+the ratio  "Postperiod RMSPE/Preperiod RMSPE" for the control and treatment municipalities is not statistically different, as can be seen in the results of the t-test
+
 ```{r}
-post_mspe
-table.loss
+#post_mspe
+#table.loss
 post.pre <- inner_join( post_mspe, table.loss, by=c("municipality"="mun")) %>% 
   select(-Loss.W) %>% 
   mutate(high_cct=ifelse(municipality %in% high_treatment, "high","low")) %>% 
-  mutate(post_pre= sqrt(post_mspe_gap)/sqrt(Loss.V))
+  mutate(post_pre_ratio= sqrt(post_mspe_gap)/sqrt(Loss.V))
 post.pre
 
 plot_location1<- paste("output/box_plot",pop, as.character(low),as.character(high),".png", sep = "_")
 
 set.seed(2019)
 post.pre %>% 
-ggplot( aes(x=high_cct, y=(post_pre), color=high_cct)) +
+ggplot( aes(x=high_cct, y=(post_pre_ratio), color=high_cct)) +
   coord_flip()+
   geom_boxplot(color = "gray60", outlier.alpha = 0) +
   geom_jitter(size = 3, alpha = 0.25, width = 0.2)+
@@ -510,16 +521,18 @@ ggplot( aes(x=high_cct, y=(post_pre), color=high_cct)) +
 ggsave(plot_location1)
 
 post.pre.high<- post.pre   %>% 
-  filter(high_cct=="high") %>% select(post_pre)
+  filter(high_cct=="high") %>% select(post_pre_ratio)
 
 post.pre.low <-post.pre %>% 
-  filter(high_cct=="low") %>% select(post_pre)
+  filter(high_cct=="low") %>% select(post_pre_ratio)
 
 t.test(x= post.pre.high, y = post.pre.low, alternative = c("two.sided", "less", "greater"), mu = 0,  paired = FALSE, var.equal = FALSE, conf.level = 0.95)
 ```
 
 
-# t-test of the "2018 gap" and "2018 gap/Preperiod RMSPE"
+## t-test of the "2018 gap" and "2018 gap/Preperiod RMSPE"
+
+the mean of both the "2018 gap" and the "2018 gap/Preperiod RMSPE" are statistically different for the treatment units and the placebos (synthetic controls of the control regions). See the plots and the results of both t-tests
 
 ```{r}
 gap.high.cct <-mr_gap_pacific_states_plot %>% 
@@ -581,7 +594,7 @@ ggsave(plot_location1)
 plot_location1
 ```
 
-
+For more details about this methodology and the placebo-tests see the references in the readme file of the main repository
 
 
 
