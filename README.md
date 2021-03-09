@@ -31,7 +31,7 @@ robustness checks that can be performed to test the findings of this chapter.
 - This notebook can also be executed online at [GESIS Notebooks](https://notebooks.gesis.org). Just copy the URL of this repository and paste it on the [BINDER form](https://notebooks.gesis.org/binder/) To open a virtual R Studio session, make sure you change you click on `File` and change it to `URL`. Then, write `rstudio` in the field `URL to open (optional)`. Finally, click on `launch`.  
 
 
-## References
+## Major References
 
 
 - Abadie, Alberto, Alexis Diamond, and Jens Hainmueller (2010). "Synthetic control methods for
