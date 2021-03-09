@@ -1,5 +1,9 @@
 RStudio: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/quarcs-lab/Tutorial-synthetic-control-methods-Felipe-thesis-chapter5/HEAD?urlpath=rstudio)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4590069.svg)](https://doi.org/10.5281/zenodo.4590069)
+
+
+
 This repository contains a tutorial to replicate the results of the 5th chapter of my Master Thesis.
 
 ## The Effect of Conditional Cash Transfer Policies on Crime: Evidence from a Synthetic Controls Framework
