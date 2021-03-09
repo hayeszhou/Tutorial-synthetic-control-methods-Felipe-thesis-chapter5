@@ -1,7 +1,11 @@
 RStudio: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/quarcs-lab/Tutorial-synthetic-control-methods-Felipe-thesis-chapter5/HEAD?urlpath=rstudio)
-
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4590069.svg)](https://doi.org/10.5281/zenodo.4590069)
 
+Suggested citation: Felipe Santos-Marquez. (2021, March 9). quarcs-lab/Tutorial-synthetic-control-methods-Felipe-thesis-chapter5: v1.0.2 zenodo (Version v1.0.2). Zenodo. http://doi.org/10.5281/zenodo.4590069
+
+This work is licensed under the Creative Commons Attribution-Share Alike 4.0 International License.
+
+[![Creative Commons Lizenzvertrag](https://i.creativecommons.org/l/by-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-sa/4.0/)
 
 
 This repository contains a tutorial to replicate the results of the 5th chapter of my Master Thesis.
@@ -25,9 +29,6 @@ robustness checks that can be performed to test the findings of this chapter.
 ## Online Environments
 
 - This notebook can also be executed online at [GESIS Notebooks](https://notebooks.gesis.org). Just copy the URL of this repository and paste it on the [BINDER form](https://notebooks.gesis.org/binder/) To open a virtual R Studio session, make sure you change you click on `File` and change it to `URL`. Then, write `rstudio` in the field `URL to open (optional)`. Finally, click on `launch`.  
-
-
-[![Creative Commons Lizenzvertrag](https://i.creativecommons.org/l/by-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-sa/4.0/)
 
 
 ## References
